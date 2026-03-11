@@ -106,7 +106,7 @@ function App() {
         <input
           type="number"
           min="1"
-          max="30"
+          max="400"
           value={form.tage}
           onChange={(e) => updateField("tage", Number(e.target.value))}
         />
