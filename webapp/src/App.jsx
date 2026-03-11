@@ -141,6 +141,8 @@ function App() {
             NFC beschreiben
           </button>
         </div>
+      </section>
+      <section className="panel">
         <h2>NFC Löschen</h2>
         <label htmlFor="clearTag">NFC-Tag löschen</label>
         <div className="actions">
