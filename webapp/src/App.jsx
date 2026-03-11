@@ -140,6 +140,10 @@ function App() {
           <button onClick={writeTag} disabled={!canWrite}>
             NFC beschreiben
           </button>
+        </div>
+        <h2>NFC Löschen</h2>
+        <label htmlFor="clearTag">NFC-Tag löschen</label>
+        <div className="actions">
           <button onClick={clearTag} disabled={busy}>
             NFC löschen
           </button>
