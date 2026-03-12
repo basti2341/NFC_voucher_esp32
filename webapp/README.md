@@ -85,3 +85,16 @@ Dieses Skript fuehrt zwei Schritte aus:
 ## Hinweise
 
 Die Webapp ist bewusst einfach gehalten. Sie bildet aktuell nur den bereits umgesetzten Funktionsumfang der ESP32-Firmware ab. Erweiterungen wie komplexe JSON-Datenstrukturen, Validierung von Gutscheinobjekten oder Verwaltungsfunktionen muessen sowohl im Frontend als auch in der Firmware ergaenzt werden.
+
+## Build & Deploy (Windows PowerShell)
+
+In PowerShell (im `webapp`-Ordner) :
+
+```powershell
+npm install
+npm run build:esp
+# anschließend in project-root: PlatformIO uploadfs
+npm run deploy:esp
+```
+
+Hinweis: `build:esp` erstellt zusätzlich zu den normalen Dateien auch `.gz`-Versionen von HTML/CSS/JS, die die Firmware erwartet.

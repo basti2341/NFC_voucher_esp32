@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "build:esp": "vite build",
+  "build:esp": "vite build && node ./scripts/gzip-build.js",
     "deploy:esp": "npm run build:esp && pio run -d .. -t uploadfs",
     "lint": "eslint .",
     "preview": "vite preview"
