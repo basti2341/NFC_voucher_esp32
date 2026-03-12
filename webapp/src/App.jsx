@@ -162,8 +162,8 @@ function App() {
             Tag beschreiben
           </button>
         </div>
-
-        <h2>Tag löschen</h2>
+        <h2>NFC Löschen</h2>
+        <label htmlFor="clearTag">NFC-Tag löschen</label>
         <div className="actions">
           <button className="danger" onClick={clearTag} disabled={busy}>
             Tag löschen
