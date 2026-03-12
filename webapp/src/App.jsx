@@ -65,12 +65,16 @@ function App() {
     setBusy(true)
     setStatus({ type: 'info', message: 'Bereit zum Schreiben. Halte einen NFC-Tag an das Gerät...' })
     try {
-      const body = { ...form }
+      // server expects a 'text' field containing the string to write
+      // put our structured data into that field as a JSON string
+      const body = { text: JSON.stringify(form) }
       const resp = await apiRequest('/api/tag/write', {
         method: 'POST',
         body: JSON.stringify(body),
       })
-      setStatus({ type: 'success', message: resp?.message || 'Schreiben erfolgreich.' })
+      const uid = resp?.uid
+      const written = resp?.writtenText
+      setStatus({ type: 'success', message: `Schreiben erfolgreich. UID=${uid || '-'} (${(written && written.length) || 0} bytes)` })
     } catch (error) {
       setStatus({ type: 'error', message: prettyErrorMessage(error) })
     } finally {
