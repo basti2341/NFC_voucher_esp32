@@ -89,8 +89,9 @@ function App() {
     setBusy(true)
     setStatus({ type: 'info', message: 'Warte auf NFC-Tag zum Löschen...' })
     try {
-      const resp = await apiRequest('/api/tag/clear', { method: 'POST' })
-      setStatus({ type: 'success', message: resp?.message || 'Tag wurde gelöscht.' })
+      // server implements /api/tag/erase
+      const resp = await apiRequest('/api/tag/erase', { method: 'POST' })
+      setStatus({ type: 'success', message: resp?.message || `Tag wurde gelöscht. UID=${resp?.uid || '-'}` })
       setReadResult(null)
     } catch (error) {
       setStatus({ type: 'error', message: prettyErrorMessage(error) })
