@@ -18,6 +18,7 @@ from garminconnect import Garmin
 HERE = Path(__file__).parent
 TOKENS = os.path.expanduser("~/.garminconnect")
 PORT = int(os.environ.get("PORT", 8000))
+HOST = os.environ.get("HOST", "127.0.0.1")  # HOST=0.0.0.0 -> im WLAN erreichbar
 
 
 def login() -> Garmin:
@@ -113,4 +114,4 @@ class Handler(BaseHTTPRequestHandler):
 if __name__ == "__main__":
     Handler.api = login()
     print(f"Laeuft auf http://localhost:{PORT}")
-    ThreadingHTTPServer(("127.0.0.1", PORT), Handler).serve_forever()
+    ThreadingHTTPServer((HOST, PORT), Handler).serve_forever()
