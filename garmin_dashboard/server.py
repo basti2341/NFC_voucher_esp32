@@ -37,7 +37,8 @@ def login() -> Garmin:
 def day_data(api: Garmin, d: date) -> dict:
     iso = d.isoformat()
     out = {"date": iso, "steps": None, "calories": None, "restingHr": None,
-           "sleepHours": None, "sleep": None}
+           "sleepHours": None, "sleep": None, "sleepScore": None,
+           "bbHigh": None, "bbLow": None}
     try:
         s = api.get_user_summary(iso)
         out["steps"] = s.get("totalSteps")
@@ -47,6 +48,7 @@ def day_data(api: Garmin, d: date) -> dict:
         print("summary", iso, e, file=sys.stderr)
     try:
         sl = (api.get_sleep_data(iso) or {}).get("dailySleepDTO") or {}
+        out["sleepScore"] = (((sl.get("sleepScores") or {}).get("overall")) or {}).get("value")
         total = sl.get("sleepTimeSeconds")
         if total:
             out["sleepHours"] = round(total / 3600, 2)
@@ -60,6 +62,15 @@ def day_data(api: Garmin, d: date) -> dict:
 def build(api: Garmin, days: int) -> dict:
     today = date.today()
     daily = [day_data(api, today - timedelta(days=i)) for i in range(days - 1, -1, -1)]
+    try:
+        bb = {b.get("date"): b for b in api.get_body_battery(daily[0]["date"], daily[-1]["date"]) or []}
+        for row in daily:
+            vals = [v[1] for v in (bb.get(row["date"], {}).get("bodyBatteryValuesArray") or [])
+                    if len(v) > 1 and v[1] is not None]
+            if vals:
+                row["bbHigh"], row["bbLow"] = max(vals), min(vals)
+    except Exception as e:
+        print("body battery", e, file=sys.stderr)
     acts = []
     for a in api.get_activities(0, 10):
         acts.append({

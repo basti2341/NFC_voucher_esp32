@@ -45,6 +45,8 @@
     <div class="card"><h2>Kalorien</h2><canvas id="cal"></canvas></div>
     <div class="card"><h2>Ruhepuls</h2><canvas id="hr"></canvas></div>
     <div class="card"><h2>Schlaf (Stunden)</h2><canvas id="sleep"></canvas></div>
+    <div class="card"><h2>Schlaf-Score</h2><canvas id="score"></canvas></div>
+    <div class="card"><h2>Body Battery (Tageshoch/-tief)</h2><canvas id="bb"></canvas></div>
   </div>
   <div class="card tablewrap">
     <h2>Letzte Aktivitäten</h2>
@@ -80,6 +82,8 @@ async function load() {
       ['Ø Kalorien', fmt(Math.round(avg(d.map(x=>x.calories)) || 0))],
       ['Ø Ruhepuls', fmt(Math.round(avg(d.map(x=>x.restingHr)) || 0)) + ' bpm'],
       ['Ø Schlaf', (avg(d.map(x=>x.sleepHours)) || 0).toFixed(1).replace('.',',') + ' h'],
+      ['Ø Schlaf-Score', fmt(Math.round(avg(d.map(x=>x.sleepScore)) || 0))],
+      ['Ø Body Battery max', fmt(Math.round(avg(d.map(x=>x.bbHigh)) || 0))],
     ];
     document.getElementById('kpis').innerHTML = kpis.map(([l,v]) =>
       `<div class="card kpi"><b>${v}</b><span>${l}</span></div>`).join('');
@@ -89,6 +93,11 @@ async function load() {
     draw('hr','line',labels,[{label:'Ruhepuls',data:d.map(x=>x.restingHr),borderColor:'#ff375f',tension:.3,spanGaps:true}]);
     const ph = [['deep','Tief','#5e5ce6'],['light','Leicht','#64d2ff'],['rem','REM','#bf5af2'],['awake','Wach','#ff9f0a']];
     draw('sleep','bar',labels, ph.map(([k,l,c]) => ({label:l,data:d.map(x=>x.sleep?.[k] ?? null),backgroundColor:c})), true);
+
+    draw('score','line',labels,[{label:'Schlaf-Score',data:d.map(x=>x.sleepScore),borderColor:'#5e5ce6',tension:.3,spanGaps:true}]);
+    draw('bb','line',labels,[
+      {label:'Hoch',data:d.map(x=>x.bbHigh),borderColor:'#30d158',tension:.3,spanGaps:true},
+      {label:'Tief',data:d.map(x=>x.bbLow),borderColor:'#ff453a',tension:.3,spanGaps:true}]);
 
     document.getElementById('acts').innerHTML = data.activities.map(a =>
       `<tr><td>${(a.start||'').slice(0,10)}</td><td>${a.name ?? a.type ?? ''}</td><td>${fmt(a.km)}</td><td>${fmt(a.minutes)}</td><td>${fmt(a.avgHr)}</td></tr>`).join('');
