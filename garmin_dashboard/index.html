@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Garmin Dashboard</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<style>
+  :root { --bg:#f4f5f7; --card:#fff; --text:#1b1f24; --muted:#6b7280; --accent:#0a84ff; }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg:#111418; --card:#1c2128; --text:#e6e8eb; --muted:#8b949e; }
+  }
+  * { box-sizing: border-box; }
+  body { margin:0; padding:16px; background:var(--bg); color:var(--text);
+         font:15px/1.4 system-ui, sans-serif; }
+  main { max-width:960px; margin:0 auto; }
+  header { display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; }
+  h1 { font-size:1.4rem; margin:0; }
+  select { padding:6px 10px; border-radius:8px; border:1px solid var(--muted); background:var(--card); color:var(--text); }
+  .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(130px,1fr)); gap:12px; margin:16px 0; }
+  .card { background:var(--card); border-radius:12px; padding:14px; }
+  .kpi b { display:block; font-size:1.6rem; }
+  .kpi span { color:var(--muted); font-size:.85rem; }
+  .charts { display:grid; grid-template-columns:repeat(auto-fit,minmax(300px,1fr)); gap:12px; }
+  h2 { font-size:1rem; margin:0 0 8px; }
+  table { width:100%; border-collapse:collapse; }
+  th, td { text-align:left; padding:6px 4px; border-bottom:1px solid rgba(128,128,128,.2); }
+  th { color:var(--muted); font-weight:500; font-size:.85rem; }
+  .tablewrap { overflow-x:auto; margin-top:12px; }
+  #status { color:var(--muted); margin:12px 0; }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>⌚ Garmin Dashboard</h1>
+    <label>Zeitraum
+      <select id="days"><option value="7">7 Tage</option><option value="14" selected>14 Tage</option><option value="30">30 Tage</option></select>
+    </label>
+  </header>
+  <div id="status">Lade Daten …</div>
+  <div class="grid" id="kpis"></div>
+  <div class="charts">
+    <div class="card"><h2>Schritte</h2><canvas id="steps"></canvas></div>
+    <div class="card"><h2>Kalorien</h2><canvas id="cal"></canvas></div>
+    <div class="card"><h2>Ruhepuls</h2><canvas id="hr"></canvas></div>
+    <div class="card"><h2>Schlaf (Stunden)</h2><canvas id="sleep"></canvas></div>
+  </div>
+  <div class="card tablewrap">
+    <h2>Letzte Aktivitäten</h2>
+    <table><thead><tr><th>Datum</th><th>Name</th><th>km</th><th>Min</th><th>Ø Puls</th></tr></thead><tbody id="acts"></tbody></table>
+  </div>
+</main>
+<script>
+const charts = {};
+const fmt = n => n == null ? '–' : Number(n).toLocaleString('de-DE');
+const avg = a => { const v = a.filter(x => x != null); return v.length ? v.reduce((s,x)=>s+x,0)/v.length : null; };
+
+function draw(id, type, labels, datasets, stacked) {
+  charts[id]?.destroy();
+  charts[id] = new Chart(document.getElementById(id), {
+    type, data: { labels, datasets },
+    options: { responsive:true, plugins:{ legend:{ display: datasets.length > 1 } },
+               scales: stacked ? { x:{stacked:true}, y:{stacked:true} } : {} }
+  });
+}
+
+async function load() {
+  const status = document.getElementById('status');
+  status.textContent = 'Lade Daten …';
+  try {
+    const res = await fetch('/api/data?days=' + document.getElementById('days').value);
+    const data = await res.json();
+    if (data.error) throw new Error(data.error);
+    const d = data.daily, labels = d.map(x => x.date.slice(5));
+    status.textContent = '';
+
+    const kpis = [
+      ['Ø Schritte', fmt(Math.round(avg(d.map(x=>x.steps)) || 0))],
+      ['Ø Kalorien', fmt(Math.round(avg(d.map(x=>x.calories)) || 0))],
+      ['Ø Ruhepuls', fmt(Math.round(avg(d.map(x=>x.restingHr)) || 0)) + ' bpm'],
+      ['Ø Schlaf', (avg(d.map(x=>x.sleepHours)) || 0).toFixed(1).replace('.',',') + ' h'],
+    ];
+    document.getElementById('kpis').innerHTML = kpis.map(([l,v]) =>
+      `<div class="card kpi"><b>${v}</b><span>${l}</span></div>`).join('');
+
+    draw('steps','bar',labels,[{label:'Schritte',data:d.map(x=>x.steps),backgroundColor:'#0a84ff'}]);
+    draw('cal','bar',labels,[{label:'Kalorien',data:d.map(x=>x.calories),backgroundColor:'#ff9f0a'}]);
+    draw('hr','line',labels,[{label:'Ruhepuls',data:d.map(x=>x.restingHr),borderColor:'#ff375f',tension:.3,spanGaps:true}]);
+    const ph = [['deep','Tief','#5e5ce6'],['light','Leicht','#64d2ff'],['rem','REM','#bf5af2'],['awake','Wach','#ff9f0a']];
+    draw('sleep','bar',labels, ph.map(([k,l,c]) => ({label:l,data:d.map(x=>x.sleep?.[k] ?? null),backgroundColor:c})), true);
+
+    document.getElementById('acts').innerHTML = data.activities.map(a =>
+      `<tr><td>${(a.start||'').slice(0,10)}</td><td>${a.name ?? a.type ?? ''}</td><td>${fmt(a.km)}</td><td>${fmt(a.minutes)}</td><td>${fmt(a.avgHr)}</td></tr>`).join('');
+  } catch (e) {
+    status.textContent = 'Fehler: ' + e.message;
+  }
+}
+document.getElementById('days').addEventListener('change', load);
+load();
+</script>
+</body>
+</html>
